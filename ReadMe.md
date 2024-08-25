@@ -19,5 +19,5 @@ The `ArmRobot` library provides tools for performing kinematic calculations for 
 1. **Clone the Repository**
 
    ```bash
-   git clone https://github.com/yourusername/your-repository.git
+   git clone https://github.com/ryan-barry-99/arm_robot_kinematics_cpp.git
    cd your-repository
