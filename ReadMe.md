@@ -4,7 +4,7 @@
 
 The `ArmRobot` library provides tools for performing kinematic calculations for robotic arms. It extends the `ArmRobotKinematics` class to allow for customizable robotic arm configurations. This library supports both forward and inverse kinematics calculations using a Jacobian pseudoinverse method for iterative solutions.
 
-Find the Python version of this repository [here](https://github.com/ryan-barry-99/arm_robot_kinematics_py)
+Find the Python version of this repository [here](https://github.com/ryan-barry-99/arm_robot_kinematics_py).
 
 ## Features
 
