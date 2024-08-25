@@ -1,0 +1,28 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Debug C++ File",
+        "type": "cppdbg",
+        "request": "launch",
+        "program": "${workspaceFolder}/arm_robot_kinematics",
+        "args": [],
+        "stopAtEntry": false,
+        "cwd": "${workspaceFolder}",
+        "environment": [],
+        "externalConsole": false,
+        "MIMode": "lldb",
+        "setupCommands": [
+          {
+            "description": "Enable pretty-printing for lldb",
+            "text": "settings set -- target.source-map / /",
+            "ignoreFailures": true
+          }
+        ],
+        "preLaunchTask": "build",
+        "miDebuggerPath": "/usr/bin/lldb",
+        "internalConsoleOptions": "openOnSessionStart"
+      }
+    ]
+  }
+  
