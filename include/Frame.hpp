@@ -68,6 +68,7 @@ public:
 
     double getTheta() { return m_theta; }
     double getD() { return m_d; }
+    double getJointValue() { return m_jointValue; }
 
 private:
     int m_jointType;    ///< Type of the joint
@@ -77,6 +78,7 @@ private:
     double m_a;         ///< Distance a_n+1 along the x_n axis
     double m_alpha;     ///< Rotate the z_n axis about the x_n+1 axis an angle of alpha_n+1 to align the z_n axis with the z_n+1 axis
     double m_alphaFix;  ///< Angle alpha_n+1 to align z_n with z_n+1
+    double m_jointValue;  ///< The current value of the joint
     Eigen::Matrix4d m_transformMatrix; ///< Transformation matrix for the frame
 };
 

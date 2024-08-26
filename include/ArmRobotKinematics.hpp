@@ -27,18 +27,10 @@
 
 class ArmRobotKinematics{
 public:
-    ArmRobotKinematics() : m_frames() {}
+    ArmRobotKinematics(vector<Frame>* frames) : m_frames(frames) {}
 
-    // Add a frame to the robot arm
-    Frame* addFrame(
-        JointType jointType,    ///< Type of the joint (e.g., PRISMATIC, REVOLUTE, etc.)
-        double thetaFix,    ///< Fixed angle theta_n+1 to align x_n with x_n+1
-        double d,          ///< Distance d_n+1 along the z_n axis
-        double a,          ///< Distance a_n+1 along the rotated x_n axis
-        double alphaFix   ///< Angle alpha_n+1 to rotate z_n axis to align with z_n+1
-    );
 
-    // Compute forward kinematics
+    // Compute forward kinematics of the robot based on it's current joint angles.
     void forwardKinematics();
 
     /**
@@ -62,19 +54,21 @@ public:
     void setIncrement(double increment) { m_params.increment = increment; }
     void setMomentum(double momentum) { m_params.momentum = momentum; }
 
+    // Update the joint values of the robot
+    vector<double> updateJointValues();
+
 private:
     Eigen::MatrixXd m_jacobian; ///< The Jacobian of the robot
     Eigen::MatrixXd m_jacobianPseudoInverse; ///< The pseudo inverse of the Jacobian matrix
-    void jacobian();
+    void jacobian(); ///< Calculate the Jacobian matrix
 
-    vector<Frame> m_frames;
+    vector<Frame>* m_frames; ///< A pointer to the robot's frames
     Eigen::Matrix4d m_T; ///< The robot's transform matrix from the base to the hand
     Pose m_pose; ///< The robot's end effector pose
-    int m_numFrames = 0;
 
     KinematicParameters m_params;   // The tolerances for iterative inverse kinematics
 
-
+    vector<double> m_jointValues; ///< The robot's joint values
 };
 
 #endif

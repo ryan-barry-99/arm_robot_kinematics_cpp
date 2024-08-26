@@ -1,25 +1,11 @@
 #include "ArmRobotKinematics.hpp"
 #include "Frame.hpp"
 
-Frame* ArmRobotKinematics::addFrame(
-        JointType jointType,
-        double thetaFix,  
-        double d,         
-        double a,         
-        double alphaFix   
-    ) {
-    // Use emplace_back to construct Frame in place
-    m_frames.emplace_back(jointType, thetaFix, d, a, alphaFix);
-    m_numFrames++;
-    // Return a pointer to the newly added Frame
-    // Note: No direct way to get the pointer, so we use reference to the last added frame
-    return &m_frames.back();
-}
 
 void ArmRobotKinematics::forwardKinematics(){
     m_T = Eigen::Matrix4d::Identity();  // Initialize transformation matrix as identity
 
-    for (auto& frame : m_frames) {
+    for (auto frame : *m_frames) {
         m_T = m_T * frame.createTransformationMatrix();
     }
 
@@ -36,7 +22,6 @@ void ArmRobotKinematics::forwardKinematics(){
 
 
 vector<double> ArmRobotKinematics::inverseKinematics(Pose target_pose){
-    vector<double> jointValues;
 
     // Target position and orientation
     Eigen::Vector3d target_position(target_pose.x, target_pose.y, target_pose.z);
@@ -45,9 +30,9 @@ vector<double> ArmRobotKinematics::inverseKinematics(Pose target_pose){
     // Initialize variables
     Eigen::Vector3d position_error = Eigen::Vector3d::Constant(std::numeric_limits<double>::infinity());
     Eigen::Vector3d orientation_error = Eigen::Vector3d::Constant(std::numeric_limits<double>::infinity());
-    Eigen::VectorXd dq = Eigen::VectorXd::Zero(m_numFrames);
+    Eigen::VectorXd dq = Eigen::VectorXd::Zero(m_frames->size());
     size_t iterations = 0;
-    Eigen::VectorXd prev_dq = Eigen::VectorXd::Zero(m_numFrames);
+    Eigen::VectorXd prev_dq = Eigen::VectorXd::Zero(m_frames->size());
 
     // While error is greater than tolerance, iterate
     while ((position_error.norm() > m_params.posTolerance || orientation_error.norm() > m_params.orTolerance) 
@@ -85,8 +70,10 @@ vector<double> ArmRobotKinematics::inverseKinematics(Pose target_pose){
         prev_dq = dq;
 
         // Apply joint increments to update joint angles
-        for(int i=0; i<m_numFrames; i++){
-            m_frames[i].moveJoint(m_frames[i].getTheta() + dq(i));
+        int i=0;
+        for(auto frame : *m_frames){
+            frame.moveJoint(frame.getTheta() + dq(i));
+            i++;
         }
         
         iterations++;
@@ -96,48 +83,35 @@ vector<double> ArmRobotKinematics::inverseKinematics(Pose target_pose){
         }
     }
 
-    // Collect final joint values
-    for(int i=0; i<m_numFrames; i++){
-        Frame* p_frame = &m_frames[i];
-        double theta;
-        
-        if(p_frame->getJointType() == REVOLUTE){
-            theta = p_frame->getTheta();
-            // Get the joint angle and ensure it is within [-PI, PI]
-            if(theta > M_PI){
-                theta -= 2*M_PI;
-            }
-            jointValues.push_back(theta);
-        }
-        else if(p_frame->getJointType() == PRISMATIC){
-            // Get the prismatic joint displacement
-            jointValues.push_back(p_frame->getD());
-        }
-    }
-
-    return jointValues;
+    return this->updateJointValues();
 }
 
-
+vector<double> ArmRobotKinematics::updateJointValues(){
+    m_jointValues.clear();
+    for(auto frame: *m_frames){
+        m_jointValues.push_back(frame.getJointValue());
+    }
+    return m_jointValues;
+}
 
 void ArmRobotKinematics::jacobian() {
     // Initialize Jacobian matrix with size 6 x number of frames
-    Eigen::MatrixXd J(6, m_frames.size());
+    Eigen::MatrixXd J(6, m_frames->size());
     J.setZero();  // Initialize to zero
 
     this->forwardKinematics();
 
     Eigen::Vector3d On(m_pose.x, m_pose.y, m_pose.z); // Position of the end-effector in the base frame coordinate system
 
-    for(int i=0; i<m_numFrames; i++){
-        Frame* p_frame = &m_frames[i];
-        int jointType = p_frame->getJointType();
+    int i=0;
+    for(auto frame : *m_frames){
+        int jointType = frame.getJointType();
 
         if(jointType == FIXED_ROTATION || jointType == FIXED_TRANSLATION){
             continue;
         }
 
-        Eigen::Matrix4d T = p_frame->getTransformMatrix();
+        Eigen::Matrix4d T = frame.getTransformMatrix();
         
         // Get the rotation axis of the i-th joint (third column)
         Eigen::Vector3d Zi = T.col(2).head<3>();
@@ -161,6 +135,7 @@ void ArmRobotKinematics::jacobian() {
             throw std::invalid_argument("Unknown joint type");
         }
 
+        i++;
     }
     m_jacobian = J;
     // Compute the pseudo-inverse of J

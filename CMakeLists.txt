@@ -14,6 +14,7 @@ add_executable(arm_robot_kinematics
     src/main.cpp
     src/Frame.cpp
     src/ArmRobotKinematics.cpp
+    src/ArmRobot.cpp
 )
 
 # Include directories for your own headers

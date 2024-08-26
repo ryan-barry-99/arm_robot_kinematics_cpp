@@ -3,5 +3,5 @@
 
 
 int main(){
-    ArmRobot Arm;
+    ArmRobot Arm = ArmRobot();
 }

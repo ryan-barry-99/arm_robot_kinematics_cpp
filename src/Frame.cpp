@@ -18,12 +18,18 @@ Frame::Frame(
 void Frame::moveJoint(double jointValue){
     if (m_jointType == REVOLUTE) {
         m_theta = fmod(jointValue, 2 * M_PI);
+        m_jointValue = m_theta;
+        if(m_theta > M_PI){
+            m_jointValue -= 2*M_PI;
+        }
     } 
     else if (m_jointType == PRISMATIC) {
         if (m_d == 0) {
             m_a += jointValue;
+            m_jointValue = m_a;
         } else if (m_a == 0) {
             m_d += jointValue;
+            m_jointValue = m_d;
         }
     }
 }
