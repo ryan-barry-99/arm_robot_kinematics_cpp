@@ -44,8 +44,8 @@ public:
     void forwardKinematics(){
         m_T = Eigen::Matrix4d::Identity();  // Initialize transformation matrix as identity
 
-        for (auto frame : *m_frames) {
-            m_T = m_T * frame.createTransformationMatrix();
+        for (auto& frame : *m_frames) {
+            m_T = m_T * frame.getTransformationMatrix();
         }
 
         m_pose.x = m_T(0, 3);
@@ -72,9 +72,13 @@ public:
         Eigen::Vector3d target_position(target_pose.x, target_pose.y, target_pose.z);
         Eigen::Vector3d target_orientation(target_pose.roll, target_pose.pitch, target_pose.yaw);
 
+        // Get the current position and orientation
+        Eigen::Vector3d current_position(m_pose.x, m_pose.y, m_pose.z);
+        Eigen::Vector3d current_orientation(m_pose.roll, m_pose.pitch, m_pose.yaw);
+
         // Initialize variables
-        Eigen::Vector3d position_error = Eigen::Vector3d::Constant(std::numeric_limits<double>::infinity());
-        Eigen::Vector3d orientation_error = Eigen::Vector3d::Constant(std::numeric_limits<double>::infinity());
+        Eigen::Vector3d position_error = target_position - current_position;
+        Eigen::Vector3d orientation_error = target_orientation - current_orientation;
         Eigen::VectorXd dq = Eigen::VectorXd::Zero(m_frames->size());
         size_t iterations = 0;
         Eigen::VectorXd prev_dq = Eigen::VectorXd::Zero(m_frames->size());
@@ -86,41 +90,68 @@ public:
             this->forwardKinematics();
             
             // Get the current position and orientation
-            Eigen::Vector3d current_position(m_pose.x, m_pose.y, m_pose.z);
-            Eigen::Vector3d current_orientation(m_pose.roll, m_pose.pitch, m_pose.yaw);
+            current_position << m_pose.x, m_pose.y, m_pose.z;
+            current_orientation << m_pose.roll, m_pose.pitch, m_pose.yaw;
 
             // Calculate position error
-            Eigen::Vector3d position_error = target_position - current_position;
+            position_error = target_position - current_position;
 
             // Calculate orientation error
-            Eigen::Vector3d orientation_error = target_orientation - current_orientation;
+            orientation_error = target_orientation - current_orientation;
 
+            // Compute the Jacobian matrix
             this->jacobian();
+            
+            // Compute the pseudo-inverse of the Jacobian matrix
+            Eigen::MatrixXd m_jacobianPseudoInverse = m_jacobian.completeOrthogonalDecomposition().pseudoInverse();
 
             // Calculate condition number of the Jacobian matrix
             Eigen::JacobiSVD<Eigen::MatrixXd> svd(m_jacobian);
+
+
             double cond = svd.singularValues()(0) / svd.singularValues()(svd.singularValues().size() - 1);
 
-            double scaled_increment = m_params.increment / cond;
+            double scaled_increment = m_params.increment / (cond + m_params.epsilon);
 
             // Compute the concatenated error vector and scale it
             Eigen::VectorXd concatenated_error(6);
             concatenated_error.head<3>() = position_error * scaled_increment;
             concatenated_error.tail<3>() = orientation_error * scaled_increment;
 
+        
+            // // Damped Least Squares (DLS) method
+            // double lambda = m_params.dampingFactor; // Choose an appropriate damping factor (e.g., 0.1 or dynamically adjusted)
+
+            // Eigen::MatrixXd JtJ = m_jacobian.transpose() * m_jacobian;
+            // Eigen::MatrixXd damped_JtJ = JtJ + lambda * Eigen::MatrixXd::Identity(JtJ.rows(), JtJ.cols());
+
+            // // Calculate the DLS pseudo-inverse
+            // Eigen::MatrixXd m_jacobianDampedPseudoInverse = damped_JtJ.inverse() * m_jacobian.transpose();
+
+            // // Solve for joint increments (dq)
+            // dq = m_jacobianDampedPseudoInverse * concatenated_error + m_params.momentum * prev_dq;
+
             // Solve for joint increments (dq)
             dq = m_jacobianPseudoInverse * concatenated_error + m_params.momentum * prev_dq;
 
             // Update previous dq
             prev_dq = dq;
-
+\
             // Apply joint increments to update joint angles
             int i=0;
-            for(auto frame : *m_frames){
+            for(auto& frame : *m_frames){
                 frame.moveJoint(frame.getTheta() + dq(i));
                 i++;
             }
-            
+
+            current_position << m_pose.x, m_pose.y, m_pose.z;
+            current_orientation << m_pose.roll, m_pose.pitch, m_pose.yaw;
+            // Calculate position error
+            position_error = target_position - current_position;
+
+            // Calculate orientation error
+            orientation_error = target_orientation - current_orientation;
+
             iterations++;
             // Check if maximum iterations are reached and throw an error if so
             if (iterations >= m_params.maxIterations) {
@@ -135,7 +166,7 @@ public:
     // Update the joint values of the robot
     vector<double> getJointValues(){
         m_jointValues.clear();
-        for(auto frame: *m_frames){
+        for(auto& frame: *m_frames){
             m_jointValues.push_back(frame.getJointValue());
         }
         return m_jointValues;
@@ -162,16 +193,17 @@ private:
         this->forwardKinematics();
 
         Eigen::Vector3d On(m_pose.x, m_pose.y, m_pose.z); // Position of the end-effector in the base frame coordinate system
-
+        std::cout << "End-effector position: " << endl << "x: " << m_pose.x << " y: " << m_pose.y << " z: " << m_pose.z << endl;
+        std::cout << "End-effector orientation: " << endl << "roll: " << m_pose.roll << " pitch: " << m_pose.pitch << " yaw: " << m_pose.yaw << endl;
         int i=0;
-        for(auto frame : *m_frames){
+        for(auto& frame : *m_frames){
             int jointType = frame.getJointType();
 
             if(jointType == FIXED_ROTATION || jointType == FIXED_TRANSLATION){
                 continue;
             }
 
-            Eigen::Matrix4d T = frame.getTransformMatrix();
+            Eigen::Matrix4d T = frame.getTransformationMatrix();
             
             // Get the rotation axis of the i-th joint (third column)
             Eigen::Vector3d Zi = T.col(2).head<3>();
@@ -198,8 +230,6 @@ private:
             i++;
         }
         m_jacobian = J;
-        // Compute the pseudo-inverse of J
-        Eigen::MatrixXd m_jacobianPseudoInverse = J.completeOrthogonalDecomposition().pseudoInverse();
     }
 
 };

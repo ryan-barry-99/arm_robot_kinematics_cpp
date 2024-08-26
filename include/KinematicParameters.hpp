@@ -25,11 +25,13 @@
 
 class KinematicParameters {
 public:
-    double posTolerance = 0.002;           ///< The position tolerance for convergence.
-    double orTolerance = 2 * M_PI / 180;   ///< The orientation tolerance for convergence (in radians).
-    double maxIterations = 10000;          ///< The maximum number of iterations allowed to converge to a solution.
-    double increment = 0.0001;             ///< The increment step size for adjusting each joint during iteration.
+    double posTolerance = 0.005;           ///< The position tolerance for convergence.
+    double orTolerance = 1 * M_PI / 180;   ///< The orientation tolerance for convergence (in radians).
+    double maxIterations = 10000000;          ///< The maximum number of iterations allowed to converge to a solution.
+    double increment = 0.01;             ///< The increment step size for adjusting each joint during iteration.
     double momentum = 0.1;                 ///< Momentum factor to optimize the convergence speed.
+    double epsilon = 1e-5;                 ///< A small value to prevent division by zero.
+    double dampingFactor = 0.1;            ///< Damping factor for the Damped Least Squares (DLS) method.
 };
 
 #endif

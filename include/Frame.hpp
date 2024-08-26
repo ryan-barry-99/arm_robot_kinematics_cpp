@@ -62,7 +62,7 @@ public:
      * 
      * @return Eigen::Matrix4d The resulting transformation matrix
      */
-    Eigen::Matrix4d createTransformationMatrix(){
+    Eigen::Matrix4d getTransformationMatrix(){
         double ct = cos(m_thetaFix + m_theta);
         double st = sin(m_thetaFix + m_theta);
         double ca = cos(m_alphaFix + m_alpha);
@@ -79,7 +79,6 @@ public:
 
     int getJointType() { return m_jointType; }
 
-    Eigen::Matrix4d getTransformMatrix() { return m_transformMatrix; }
 
     /**
      * @brief Moves the joint by a specified value.
@@ -87,6 +86,7 @@ public:
      * @param jointValue The value to move the joint by.
      */
     void moveJoint(double jointValue){
+        // std::cout << "Moving joint by: " << jointValue << std::endl;
         if (m_jointType == REVOLUTE) {
             m_theta = fmod(jointValue, 2 * M_PI);
             m_jointValue = m_theta;
@@ -103,6 +103,7 @@ public:
                 m_jointValue = m_d;
             }
         }
+        // std::cout << "Joint value: " << m_jointValue << std::endl;
     }
 
     double getTheta() { return m_theta; }
