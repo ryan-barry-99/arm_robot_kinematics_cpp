@@ -12,9 +12,6 @@ include_directories(/opt/homebrew/include/eigen3)
 # Add the source files
 add_executable(arm_robot_kinematics
     src/main.cpp
-    src/Frame.cpp
-    src/ArmRobotKinematics.cpp
-    src/ArmRobot.cpp
 )
 
 # Include directories for your own headers

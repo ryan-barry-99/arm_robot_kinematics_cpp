@@ -54,7 +54,14 @@ public:
      * robot.addFrame(PRISMATIC, 0.0, LINK4_LENGTH, 0.0, 0.0);
      * @endcode
      */
-    ArmRobot();
+    ArmRobot() : kinematics(ArmRobotKinematics(&m_frames)) {
+        // Users can define their robot configuration here if they prefer
+        // For example:
+        // addFrame(REVOLUTE, M_PI, 0.0, LINK1_LENGTH, 0.0);
+        // addFrame(REVOLUTE, 0.0, 0.0, LINK2_LENGTH, 0.0);
+        // addFrame(REVOLUTE, 0.0, 0.0, WRIST_LENGTH, 0.0);
+        // addFrame(PRISMATIC, 0.0, LINK4_LENGTH, 0.0, 0.0);
+    }
 
     ArmRobotKinematics kinematics; ///< The kinematics object for the robot
 
@@ -65,8 +72,18 @@ public:
         double d,          ///< Distance d_n+1 along the z_n axis
         double a,          ///< Distance a_n+1 along the rotated x_n axis
         double alphaFix   ///< Angle alpha_n+1 to rotate z_n axis to align with z_n+1
-    );
+    ) {
+        // Use emplace_back to construct Frame in place
+        m_frames.emplace_back(jointType, thetaFix, d, a, alphaFix);
+        // Return a pointer to the newly added Frame
+        // Note: No direct way to get the pointer, so we use reference to the last added frame
+        return &m_frames.back();
+    }
 
+    void moveJoint(int frameIndex, double jointValue){
+        m_frames[frameIndex].moveJoint(jointValue);
+    }
+    
 private:
     std::vector<Frame> m_frames; ///< Vector of frames that make up the robot arm
 };
