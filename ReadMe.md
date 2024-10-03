@@ -6,6 +6,8 @@ The `ArmRobot` library provides tools for performing kinematic calculations for 
 
 Find the Python version of this repository [here](https://github.com/ryan-barry-99/arm_robot_kinematics_py).
 
+Note: The C++ version of this repository is still in active development as I hash out some convergence issues with the Inverse Kinematics
+
 ## Features
 
 - **Forward Kinematics**: Compute the end-effector position and orientation based on joint parameters.
